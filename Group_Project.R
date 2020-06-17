@@ -13,8 +13,6 @@ str(my_data)
 # TO-DO Here Visualizations and descriptive statistics without numeric values
 
 
-
-
 # Converting Smoker and Sex into numeric Values
 # Female 1, Male 0 
 
