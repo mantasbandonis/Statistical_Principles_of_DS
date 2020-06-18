@@ -1,4 +1,15 @@
+# Library
+
 library("readr")
+library("ISLR")
+library("tibble")
+library("ggplot2")
+library("reshape2")
+library("GGally")
+library("cowplot")
+library("psych")
+library("factoextra")
+
 my_data <- read.table("insurance.csv", sep=",", header=T)
 
 my_data_num <- my_data
@@ -11,11 +22,86 @@ colSums(is.na(my_data))
 str(my_data)
 
 
-# PART 2  - Visualizations and descriptive statistics without numeric values
-
 #summarize all variables
 summary(my_data)
-describe(my_data)
+
+
+
+
+# PART 2  - Visualizations and descriptive statistics without numeric values
+
+# 1. Correlation Between Charges and Age/BMI 
+
+x <- ggplot(my_data, aes(age, charges)) +
+  geom_jitter(color = "blue", alpha = 0.5) +
+  theme_light()
+
+y <- ggplot(my_data, aes(bmi, charges)) +
+  geom_jitter(color = "green", alpha = 0.5) +
+  theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("1. Correlation between Charges and Age / BMI", fontface='bold')
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+
+
+# 2. Correlation Between Charges and Sex/Children covered by insurance 
+
+x <- ggplot(my_data, aes(sex, charges)) +
+  geom_jitter(aes(color = sex), alpha = 0.7) +
+  theme_light()
+
+y <- ggplot(my_data, aes(children, charges)) +
+  geom_jitter(aes(color = children), alpha = 0.7) +
+  theme_light()
+
+p <- plot_grid(x, y) 
+
+title <- ggdraw() + draw_label("2. Correlation between Charges and Sex / Children covered by insurance", fontface='bold')
+
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+
+# 3. Correlation between Charges and Smoker / Region
+
+x <- ggplot(my_data, aes(smoker, charges)) +
+  geom_jitter(aes(color = smoker), alpha = 0.7) +
+  theme_light()
+
+y <- ggplot(my_data, aes(region, charges)) +
+  geom_jitter(aes(color = region), alpha = 0.7) +
+  theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("3. Correlation between Charges and Smoker / Region", fontface='bold')
+
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+
+
+
+ggplot(data = my_data,aes(region,charges)) + geom_boxplot(fill = c(2:5)) +
+  theme_classic() + ggtitle("Boxplot of Medical Charges per Region")
+
+
+# Bsed from above plot, we can disclose that region of origin doesn’t have much impact with the amount of medical cost.
+
+ggplot(data = my_data,aes(smoker,charges)) + geom_boxplot(fill = c(2:3)) +
+  theme_classic() + ggtitle("Boxplot of Medical Charges by Smoking Status")
+
+# On the other hand, the same cannot be said with smoking status. It can be clearly deceived that smokers spends a lot more in terms of medical expenses compared to non-smokers by almost 4x.
+
+
+ggplot(data = my_data,aes(sex,charges)) + geom_boxplot(fill = c(2:3)) +
+  theme_classic() + ggtitle("Boxplot of Medical Charges by Gender")
+
+# Medical expenses doesn’t seem to be affected by gender as well.
+
+my_data$obese <- as.factor(ifelse(my_data$bmi >=30, "yes", "no"))
+
+ggplot(data = my_data,aes(bmi30,charges)) + geom_boxplot(fill = c(2:3)) +
+  theme_classic() + ggtitle("Boxplot of Medical Charges by Obesity")
+
+# The idea behind deriving a new variable bmi30 is that, 30 is the bmi threshold for obesity and we all know that obesity plays a huge role in a person’s health. As we can see, although obese and non-obese people has the same median medical expenses, their average expenditure differ by almost USD 5000.
+
 
 #1. Variable Age
 summary(my_data$age)
@@ -136,8 +222,7 @@ c + geom_density(aes(fill=region), color = NA, alpha=.45) + labs(title="Density 
                                                                  fill="Legend")
 
 ggplot(data = my_data,aes(region,charges)) + geom_boxplot(fill = c(2:5), alpha=.6) +labs(title="Boxplot Charges and Region", 
-                                                                                         subtitle="Boxplot Grouped by Region",
-                                                                                         caption="",
+                                                                                         subtitle="Boxplot Grouped by Region",                                                                                        caption="",
                                                                                          x="Region",
                                                                                          y="Charges") + coord_flip()
 
@@ -145,52 +230,60 @@ ggplot(data = my_data,aes(region,charges)) + geom_boxplot(fill = c(2:5), alpha=.
 # Female 1, Male 0 
 
 my_data_num$sex <- ifelse(my_data$sex == "female", 1,0)
-my_data_num$sex = as.factor(my_data_num$sex )
+my_data_num$sex = as.numeric(my_data_num$sex)
+
 
 # Smoker 1, Non-smoker 0 
 
 my_data_num$smoker <- ifelse(my_data$smoker == "yes", 1,0)
-my_data_num$sex = as.factor(my_data_num$smoker)
+my_data_num$smoker = as.numeric(my_data_num$smoker)
 
+
+my_data_num$region <- as.numeric(as.factor(my_data$region))
 
 # Only use this if you want the regions in numeric
 
-my_data_num$region <- as.numeric(as.factor(my_data$Type))
-
-
-#Correlation Analysis
-pairs.panels(my_data[c("age", "sex", "bmi", "children", "smoker", "charges")], stars = TRUE)
 
 
 
-# region
+# Add columns to distinguish between low charges and high charges (standard : mean(charges))
 
-temp<-unique(my_data_num$region)
-
-my_data_num$region[which(my_data_num$region==temp[1])]<-0
-my_data_num$region[which(my_data_num$region==temp[2])]<-1
-my_data_num$region[which(my_data_num$region==temp[3])]<-2
-my_data_num$region[which(my_data_num$region==temp[4])]<-3
-head(my_data_num$region)
+my_data_num$group <- ifelse(my_data_num$charges > mean(my_data_num$charges), "high", "low")
 
 
-# Set the Data up for my Purpus:
+# Check correlation Coeffeicient
 
-mdn<-my_data_num # change the name for better work 
-mdn$sex<-as.factor(mdn$sex)
-mdn$children<-as.factor(mdn$children)
-mdn$smoker<-as.factor(mdn$smoker)
-mdn$region<-as.factor(mdn$region)
+cor(my_data_num[-8])
 
-str(mdn)
 
-# Inspect the Data
+# Correlation
 
-head(mdn)
+cor(my_data_num[-8])[,"charges"]
 
-plot(mdn) 
-cor(mdn)>0.5   # Where is a Posetive Correlation bigger den 0.5
-cor(mdn)>0   # Where is a Posetive Correlation bigger den 0.0
+ggcorr(my_data_num[-8], name = "corr", label = TRUE)+
+  
+  theme(legend.position="none")
+
+# PCA Plot
+
+
+my_data_pca <- my_data_num[, c(1,3,4,5,6)];
+
+
+my_data_pca$smoker = as.numeric(my_data_pca$smoker)
+my_data_pca$children <- as.numeric(my_data_pca$children)
+my_data_pca$age <- as.numeric(my_data_pca$age)
+
+
+res.pca <- prcomp(my_data_pca, scale = TRUE)
+
+fviz_pca_biplot(res.pca, col.ind = my_data_num$group, col="black",
+                
+                palette = "jco", geom = "point", repel=TRUE,
+                
+                legend.title="Charges")
+
+
 
 
 ## Densety Plot / visual inspection
@@ -273,7 +366,32 @@ summary(mg1)
 
 
 
+
+
+
 # PCA 
+
+
+fviz_pca_biplot(res.pca, 
+                
+                geom.ind = "point", 
+                
+                col.ind = my_data_num$group,
+                
+                pointsize = 2,
+                
+                palette = "jco",
+                
+                addEllipses = TRUE,
+                
+                label="var",
+                
+                col.var="black",
+                
+                repel=TRUE,
+                
+                legend.title="Charges")
+
 
 daten2<-mdn[,c(-2,-4,-5,-6)]  # get out the categorical variabel
 
@@ -351,3 +469,40 @@ points(trans.data[which(mdn$smoker==5),], col="darkslategray1")
 plot(trans.data)
 points(trans.data[which(mdn$smoker==1),], col="blue")
 points(trans.data[which(mdn$smoker==0),], col="red")
+
+
+
+
+
+# Regression
+
+lm(charges~., data=my_data_num)  
+
+# Smokers increases helath care costs(charges) by $14,972 per year.
+
+# As the number of children increases, helath care costs(charges) can be increased by $432.
+
+# –> guess: The increase in dependents can increase the cost of care such as hospital care,
+
+
+
+# How do you make a model if you want to give a higher penalty to an obese&smoke person?
+
+
+lm(charges ~ obese * smoker, data=my_data) 
+
+# obesity increases health care costs by $865, and smoking increases health care costs by $13,386.
+
+# But the both components are applied, (if smoking and obesity are together),
+
+# It can be expected that medical expenses will increase the most with $19,329.
+  
+# By predicting health care charges using linear regression methods, it is possible to impose different insurance premiums depending on the charges.
+
+# As a result of the model comparison above(4), by using * rather than +, the prediction of the model became more similar to reality.
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 ---
-title: "Group Project - Group 1"
+title: "Health Care Cost Prediction with Linear Regression Models - Group 1"
 author: "Martin Hofwimmer, k01627988 - Mantas Bandonis, k01552238"
 date: "June 2020"
 output:
@@ -13,49 +13,173 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r}
+```{r, warning=FALSE, include=FALSE,message=FALSE}
 # Load libraries
 library(ggplot2)
 library(ggthemes)
-library(psych)
 library(relaimpo)
 library("readr")
 library("ISLR")
 library("tibble")
 library("reshape2")
 library("GGally")
-
+library("cowplot")
+library("psych")
+library("factoextra")
 options(warn=-1)
 ```
 
+# 1. Introduction
+
+Given the simplicity, ease to comprehend, and size of the dataset, make it great for introductory kernels like this one that is intended for people with little knowledge of regression analysis. At the end of this kernel expect to learn more about most common type of regression: ordinary least squares. To give you some background, to make their profit, insurance companies should collect higher premium than the amount paid to the insured person. Due to this, insurance companies invests a lot of time, effort, and money in creating models that accurately predicts health care costs. In this kernel, we will try to build the most accurate model as possible but at the same time we would keep everything simple.
+
+
+```{r include=FALSE}
+#import dataset
+my_data <- read.table("insurance.csv", sep=",", header=T)
+```
 
 
 ```{r}
-#import dataset
-my_data <- read.table("insurance.csv", sep=",", header=T)
-
 # Get first overview of data
 head(my_data)
 str(my_data)
-
-# Check how many values are missing, no missing values
-colSums(is.na(my_data))
-
 ```
 
-# EDA - Martin
+
+As we can see, we are working with a rather small dataset with only 1338 observations and 7 variables. What we’d be most interested here, is with the variable charges, that is what we would try to predict.
+
+
+```{r}
+# Check how many values are missing, no missing values
+colSums(is.na(my_data))
+```
+
 
 ```{r}
 #summarize all variables
 summary(my_data)
-describe(my_data)
 ```
 
 
-# Analyse Variabes in more Detail
+The respondents’ gender and region of origin is evenly distributed, having age ranging from 18 to 64 years old. Non-smokers outnumber smokers 4 to 1. The average, medical cost is USD 13,270 with a median value of USD 9382.
 
-## 1. Age
-```{r}
+
+# 2. Visualization and Descriptive Analysis
+
+
+```{r echo=FALSE}
+ggplot(data = my_data,aes(region,charges)) + geom_boxplot(fill = c(2:5)) +
+  theme_classic() + ggtitle("Boxplot of Medical Charges per Region")
+```
+
+### 2.1.1 Correlation Between Charges and Age/BMI 
+```{r echo=FALSE}
+x <- ggplot(my_data, aes(age, charges)) +
+  geom_jitter(color = "blue", alpha = 0.5) +
+  theme_light()
+
+y <- ggplot(my_data, aes(bmi, charges)) +
+  geom_jitter(color = "green", alpha = 0.5) +
+  theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("1. Correlation between Charges and Age / BMI", fontface='bold')
+
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+
+### 2.1.2 Correlation Between Charges and Sex/Children covered by insurance 
+
+```{r echo=FALSE}
+x <- ggplot(my_data, aes(sex, charges)) +
+  geom_jitter(aes(color = sex), alpha = 0.7) +
+  theme_light()
+
+y <- ggplot(my_data, aes(children, charges)) +
+  geom_jitter(aes(color = children), alpha = 0.7) +
+  theme_light()
+
+p <- plot_grid(x, y) 
+
+title <- ggdraw() + draw_label("2. Correlation between Charges and Sex / Children covered by insurance", fontface='bold')
+
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+
+### 2.1.3 Correlation between Charges and Smoker / Region
+
+```{r echo=FALSE}
+x <- ggplot(my_data, aes(smoker, charges)) +
+  geom_jitter(aes(color = smoker), alpha = 0.7) +
+  theme_light()
+
+y <- ggplot(my_data, aes(region, charges)) +
+  geom_jitter(aes(color = region), alpha = 0.7) +
+  theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("3. Correlation between Charges and Smoker / Region", fontface='bold')
+```
+
+Plot 1: As Age and BMI go up Charges for health insurance also trends up.
+
+Plot 2: No obvious connection between Charges and Age. Charges for insurance with 4-5 chilren covered seems to go down (doesn’t make sense, does it?)
+
+Plot 3: Charges for Smokers are higher for non-smokers (no surprise here). No obvious connection between Charges and Region.
+
+## 2.2  Boxplot Analysis
+
+```{r echo=FALSE}
+ggplot(data = my_data,aes(region,charges)) + geom_boxplot(fill = c(2:5)) +
+  theme_classic() + ggtitle("Boxplot of Medical Charges per Region")
+```
+
+Based from above plot, we can disclose that region of origin doesn’t have much impact with the amount of medical cost.
+
+
+```{r echo=FALSE}
+ggplot(data = my_data,aes(smoker,charges)) + geom_boxplot(fill = c(2:3)) +
+  theme_classic() + ggtitle("Boxplot of Medical Charges by Smoking Status")
+```
+
+On the other hand, the same cannot be said with smoking status. It can be clearly deceived that smokers spends a lot more in terms of medical expenses compared to non-smokers by almost 4x.
+
+
+```{r echo=FALSE}
+ggplot(data = my_data, aes(sex,charges)) + geom_boxplot(fill = c(2:3)) +
+  theme_classic() + ggtitle("Boxplot of Medical Charges by Gender")
+```
+
+Medical expenses doesn’t seem to be affected by gender as well.
+
+```{r echo=FALSE}
+
+my_data$obese <- as.factor(ifelse(my_data$bmi >=30, "yes", "no"))
+
+ggplot(data = my_data,aes(obese,charges)) + geom_boxplot(fill = c(2:3)) +
+  theme_classic() + ggtitle("Boxplot of Medical Charges by Obesity")
+```
+
+The idea behind deriving a new variable obese is that, 30 is the bmi threshold for obesity and we all know that obesity plays a huge role in a person’s health. As we can see, although obese and non-obese people has the same median medical expenses, their average expenditure differ by almost USD 5000.
+
+
+```{r echo=FALSE}
+
+ggplot(data = my_data,aes(as.factor(children),charges)) + geom_boxplot(fill = c(2:7)) +
+  theme_classic() +  xlab("children") +
+  ggtitle("Boxplot of Medical Charges by Number of Children")
+```
+
+People with 5 children, on average, has less medical expenditures compared to the other groups.
+
+
+## 2.3 Analytics of the variables in more detail
+
+### 2.3.1 Age
+```{r echo=FALSE}
 #1. Variable Age
 summary(my_data$age)
 #Histogram
@@ -66,8 +190,8 @@ age + geom_histogram(breaks=seq(18,64, by=2) , fill=I("lightblue"),
 Age: The mean age in the sample is 39.21.
 
 
-## 2. Sex
-```{r}
+## 2.3.2 Sex
+```{r echo=FALSE}
 #2. Variable sex
 table(my_data$sex)
 prop.table(table(my_data$sex))
@@ -78,8 +202,8 @@ sex + geom_bar(fill=I("lightblue"), col=I("black"), alpha=1) + geom_text(aes(y =
 ```
 
 
-## 3. BMI
-```{r}
+### 2.3.3 BMI
+```{r echo=FALSE}
 #3. Variable BMI
 summary(my_data$bmi)
 #histogram
@@ -90,8 +214,8 @@ bmi + geom_histogram(breaks=seq(15,54, by=2) , fill=I("lightgreen"),
 ```
 
 
-## 4. Children
-```{r}
+### 2.3.4 Children
+```{r echo=FALSE}
 #4. Variabe children
 table(my_data$children)
 prop.table(table(my_data$children))
@@ -102,9 +226,8 @@ children + geom_bar(fill=I("lightblue"), col=I("black"), alpha=1) + geom_text(ae
 ```
 
 
-
-## 5. Smoker
-```{r}
+### 2.3.5 Smoker
+```{r echo=FALSE}
 #5. Variable Smoker
 table(my_data$smoker)
 prop.table(table(my_data$smoker))
@@ -116,8 +239,8 @@ smoker + geom_bar(fill=I("lightblue"), col=I("black"), alpha=1) + geom_text(aes(
 ```
 
 
-## 6. Region
-```{r}
+### 2.3.6 Region
+```{r echo=FALSE}
 #6. Variable Region
 table(my_data$region)
 prop.table(table(my_data$region))
@@ -128,8 +251,9 @@ region + geom_bar(fill=I("lightblue"), col=I("black"), alpha=1) + geom_text(aes(
 ```
 
 
-## 7. Charges
-```{r}
+### 2.3.7 Charges
+
+```{r echo=FALSE}
 #7. Variable Charges
 summary(my_data$charges)
 #Histogram
@@ -139,110 +263,20 @@ c + geom_histogram(breaks=seq(0,64000, by=2000) , fill=I("red"),
 ```
 
 
+# 3. Data Preprocessing and numeric conversion
 
-### 7.1 Charges and Age
-
-```{r}
-#7.1 Charges and Age
-ggplot(my_data, aes(x=age, y=charges)) + geom_point()+ labs(title="Scatter plot Charges and Age ", 
-                                                          caption="",
-                                                          x="Age",
-                                                          y="Charges")+ geom_smooth()
-```
-
-## 7.2 Charges and Sex
-
-```{r}
-#7.2 Charges and Sex
-c + geom_density(aes(fill=sex), color = NA, alpha=.35) + labs(title="Density plot Charges and Sex ", 
-                                                              subtitle="Density Plot Grouped by Sex",
-                                                              caption="",
-                                                              x="Charges",
-                                                             fill="Legend")
-
-ggplot(data = my_data,aes(sex,charges)) + geom_boxplot(fill = c(2,4), alpha=.6) +labs(title="Boxplot Charges and Sex", 
-                                                              subtitle="Boxplot Grouped by Sex",
-                                                              caption="",
-                                                              x="Gender",
-                                                              y="Charges") + coord_flip()
-
-```
-
-
-### 7.3 Charges and BMI
-```{r}
-#7.3 Charges and BMI
-ggplot(my_data, aes(x=bmi, y=charges)) + geom_point()+ labs(title="Scatter plot Charges and BMI ", 
-                                                          caption="",
-                                                          x="BMI",
-                                                          y="Charges") + geom_smooth()
-```
-
-
-### 7.4. CHarges and Children
-```{r}
-#7.4 Charges and Children
-c + geom_density(aes(fill=as.factor(children)), color = NA, alpha=.45) + labs(title="Density plot Charges and Children ", 
-                                                              subtitle="Density Plot Grouped by Number of Children",
-                                                              caption="",
-                                                              x="Charges",
-                                                             fill="Legend")
-
-ggplot(data = my_data,aes(as.factor(children),charges)) + geom_boxplot(fill = c(2:7), alpha=.6) +labs(title="Boxplot Charges and Children", 
-                                                              subtitle="Boxplot Grouped by Number of Children",
-                                                              caption="",
-                                                              x="Number of Children",
-                                                              y="Charges") + coord_flip()
-```
-
-### 7.5 Charges and Smoker
-```{r}
-#7.5 Charges and Smoker
-c + geom_density(aes(fill=smoker), color = NA, alpha=.35) + labs(title="Density plot Charges and Smoking", 
-                                                              subtitle="Density Plot Grouped by Smoking Status",
-                                                              caption="",
-                                                              x="Charges",
-                                                             fill="Legend")
-
-ggplot(data = my_data,aes(smoker,charges)) + geom_boxplot(fill = c(2,4), alpha=.6) +labs(title="Boxplot Charges and Smoking", 
-                                                              subtitle="Boxplot Grouped by Smoking Status",
-                                                              caption="",
-                                                              x="Smoking Status",
-                                                              y="Charges") + coord_flip()
-```
-
-
-
-### 7.6 Charges and Region
-```{r}
-#7.6 Charges and Region
-c + geom_density(aes(fill=region), color = NA, alpha=.45) + labs(title="Density plot Charges and Region ", 
-                                                              subtitle="Density Plot Grouped by Region",
-                                                              caption="",
-                                                              x="Charges",
-                                                             fill="Legend")
-
-ggplot(data = my_data,aes(region,charges)) + geom_boxplot(fill = c(2:5), alpha=.6) +labs(title="Boxplot Charges and Region", 
-                                                              subtitle="Boxplot Grouped by Region",
-                                                              caption="",
-                                                              x="Region",
-                                                              y="Charges") + coord_flip()
-```
-
-# Data Preprocessing
-
-```{r}
+```{r echo=FALSE}
 # Converting Smoker and Sex into numeric Values
 # Female 1, Male 0 
 my_data_num<-my_data
 
 my_data_num$sex <- ifelse(my_data$sex == "female", 1,0)
-my_data_num$sex = as.factor(my_data_num$sex )
+my_data_num$sex = as.numeric(my_data_num$sex)
 
 # Smoker 1, Non-smoker 0 
 
 my_data_num$smoker <- ifelse(my_data$smoker == "yes", 1,0)
-my_data_num$sex = as.factor(my_data_num$smoker)
+my_data_num$smoker = as.numeric(my_data_num$smoker)
 
 
 # Only use this if you want the regions in numeric
@@ -250,226 +284,142 @@ my_data_num$sex = as.factor(my_data_num$smoker)
 my_data_num$region <- as.numeric(as.factor(my_data$region))
 ```
 
-
-# Correlation Analysis
+## 3.1 Correlation Analysis
 
 ```{r}
-#Correlation Analysis
-pairs.panels(my_data[c("age", "sex", "bmi", "children", "smoker", "charges")], stars = TRUE)
+cor(my_data_num[-8])[,"charges"]
 ```
 
 
-# PCA and Density Plots
+```{r include=FALSE}
+ggcorr(my_data_num[-8], name = "corr", label = TRUE)+
+  
+  theme(legend.position="none")
+```
 
+## 3.2 Density Plots
 
-```{r}
+```{r include=FALSE}
 # region
 
-temp<-unique(my_data_num$region)
+temp<-unique(my_data$region)
 
-my_data_num$region[which(my_data_num$region==temp[1])]<-0
-my_data_num$region[which(my_data_num$region==temp[2])]<-1
-my_data_num$region[which(my_data_num$region==temp[3])]<-2
-my_data_num$region[which(my_data_num$region==temp[4])]<-3
-head(my_data_num$region)
+
+my_data$region[which(my_data_num$region==temp[1])]<-0
+my_data$region[which(my_data_num$region==temp[2])]<-1
+my_data$region[which(my_data_num$region==temp[3])]<-2
+my_data$region[which(my_data_num$region==temp[4])]<-3
+head(my_data$region)
+
 
 ```
 
 
-```{r}
+```{r echo=FALSE}
 # Set the categorical data as factor
 
-mdn<-my_data_num # change the name for better work 
-mdn$sex<-as.factor(mdn$sex)
-mdn$children<-as.factor(mdn$children)
-mdn$smoker<-as.factor(mdn$smoker)
-mdn$region<-as.factor(mdn$region)
+mdn<-my_data # change the name for better work 
+mdn$sex<-as.numeric(mdn$sex)
+mdn$children<-as.numeric(mdn$children)
+mdn$smoker<-as.numeric(mdn$smoker)
+mdn$region<-as.numeric(mdn$region)
 ```
 
 
 
-```{r}
-c <- ggplot(mdn, aes(x=charges))
-c + geom_density()+
-  labs(title="Density plot",subtitle="Density Plot for the charges",
-       caption="Source: In R studio",
-       x="Charges")
-b <- ggplot(mdn, aes(x=bmi))
-b + geom_density()+
-  labs(title="Density plot", 
-       subtitle="Density Plot for the bmi",
-       caption="Source: In R studio",
-       x="Bmi")
-
-
-c + geom_density(aes(fill=sex), color = NA, alpha=.35) + labs(title="Density plot charges and sex ", 
-                                                              subtitle="Density Plot Grouped by Number of Color",
-                                                              caption="Let it go XDD",
-                                                              x="Charges",
-                                                              fill="# Color")
-b + geom_density(aes(fill=sex), color = NA, alpha=.35) + labs(title="Density plot bmi and sex ", 
-                                                              subtitle="Density Plot Grouped by Number of Color",
-                                                              caption="Let it go XDD",
-                                                              x="Bmi",
-                                                              fill="# Color")
-
-c + geom_density(aes(fill=smoker), color = NA, alpha=.35) + labs(title="Density plot charges and smoker", 
-                                                                 subtitle="Density Plot Grouped by Number of Color",
-                                                                 caption="Let it go XDD",
-                                                                 x="Charges",
-                                                                 fill="# Color")
-b + geom_density(aes(fill=smoker), color = NA, alpha=.35) + labs(title="Density plot bmi and smoker", 
-                                                                 subtitle="Density Plot Grouped by Number of Color",
-                                                                 caption="Let it go XDD",
-                                                                 x="Bmi",
-                                                                 fill="# Color")
-
-c + geom_density(aes(fill=children), color = NA, alpha=.35) + labs(title="Density plot charges and children", 
-                                                                   subtitle="Density Plot Grouped by Number of Color",
-                                                                   caption="Let it go XDD",
-                                                                   x="Charges",
-                                                                   fill="# Color")
-b + geom_density(aes(fill=children), color = NA, alpha=.35) + labs(title="Density plot bmi and children", 
-                                                                   subtitle="Density Plot Grouped by Number of Color",
-                                                                   caption="Let it go XDD",
-                                                                   x="Bmi",
-                                                                   fill="# Color")
-c + geom_density(aes(fill=region), color = NA, alpha=.35) + labs(title="Density plot charges and region", 
-                                                                 subtitle="Density Plot Grouped by Number of Color",
-                                                                 caption="Let it go XDD",
-                                                                 x="Charges",
-                                                                 fill="# Color")
-b + geom_density(aes(fill=region), color = NA, alpha=.35) + labs(title="Density plot bmi and region", 
-                                                                 subtitle="Density Plot Grouped by Number of Color",
-                                                                 caption="Let it go XDD",
-                                                                 x="Bmi",
-                                                                 fill="# Color")
+```{r echo=FALSE}
+my_data_num$sex <- ifelse(my_data$sex == "female", 1,0)
+my_data_num$sex = as.numeric(my_data_num$sex)
 ```
 
 
+```{r echo=FALSE}
+my_data_num$smoker <- ifelse(my_data$smoker == "yes", 1,0)
+my_data_num$smoker = as.numeric(my_data_num$smoker)
+```
+
+
+```{r echo=FALSE}
+my_data_num$region <- as.numeric(as.factor(my_data$region))
+```
+
+Add columns to distinguish between low charges and high charges (standard : mean(charges)).
+
+
+
+Check correlation Coeffeicient
 
 ```{r}
-boxplot(mdn$charges)
-boxplot(mdn[,-7])
+cor(my_data_num[-8])
 ```
 
 
 ```{r}
-set.seed(666)
+cor(my_data_num[-8])[,"charges"]
+```
 
-default_idx <- sample(nrow(mdn), ceiling(nrow(mdn) / 2))    # coul allso macke 1/ 2/3 what you want
-default_trn <-  Default[default_idx, ]
-default_tst <- Default[-default_idx, ]
+
+```{r echo=FALSE}
+ggcorr(my_data_num[-8], name = "corr", label = TRUE)+
+  
+  theme(legend.position="none")
 ```
 
 
 ```{r}
-# Create the model.
-mb1 <- glm(children ~ smoker + bmi, data = mdn, family = "binomial")
-mg1 <- glm(charges ~ smoker + bmi, data = mdn, family = "gaussian")
-
-summary(mb1)
-summary(mg1)
+my_data_num$group <- ifelse(my_data_num$charges > mean(my_data_num$charges), "high", "low")
 ```
 
 
+## 3.3 PCA Plot
 
-```{r}
-# PCA 
+```{r echo=FALSE}
 
-daten2 <- mdn[,c(-2,-4,-5,-6)]  # get out the categorical variabel
+my_data_pca <- my_data_num[, c(1,3,4,5,6)];
 
-head(daten2)
-
-ggpairs(data = daten2, columns = 1:3)
-# Left and Right are highly correlated (Corr: 0.743). Correlated predictors creates problems in prediction.
-
-# correlation matrix
-cor.mat <- cor(daten2) ; cor.mat  
-eig <- eigen(cor.mat) ; eig
-
-# Extract eigen values and eigen vectors
-evals <- eig$values; evecs <- eig$vectors
-
-# sort the eigen values in descending order
-evals.sorted <- sort(evals, decreasing = T)
+my_data_pca$smoker = as.numeric(my_data_pca$smoker)
+my_data_pca$children <- as.numeric(my_data_pca$children)
+my_data_pca$age <- as.numeric(my_data_pca$age)
 ```
 
 
+```{r echo=FALSE}
+res.pca <- prcomp(my_data_pca, scale = TRUE)
 
-# Scree Plot
-
-```{r}
-##  Produce a scree-plot for this PCA.
-plot(eig$values,
-     ylab = "Eigenvalues",
-     xlab = "Compunentnumber",
-     main = "Scree-Plot")
-abline(h=1, col="blue")
-
-# Compute proportion of explained variances
-var.exp <- evals.sorted/sum(evals)
-barplot(var.exp, ylim = c(0,1), col = 'sandybrown',
-        xlab = "Principal Component",
-        ylab = "Explained Variances",
-        axes = TRUE)
-axis(1, c(0.7, 1.9, 3.1, 4.3,5.5,6.7),
-     labels = c("PC1", "PC2", "PC3", "PC4","PC5","PC6"))
-lines(cumsum(var.exp), type = 's', col = 'darkgreen')
-legend(x = 2.5, y = 0.5, legend = c('Explained Variance', 'Cumulative Explained Variance'),
-       pch = c(15,15), col = c('sandybrown', 'darkgreen'),
-       bty = 'n')
+fviz_pca_biplot(res.pca, col.ind = my_data_num$group, col="black",
+                
+                palette = "jco", geom = "point", repel=TRUE,
+                
+                legend.title="Charges")
 ```
 
-
-### Shows the Explaind Variance
-
-```{r}
-var.exp     
-```
-
-
-```{r}
-# Transformation matrix
-trmat <- eig$vectors[,1:2]
-
-# New data
-trans.data <- as.matrix(daten2) %*% trmat
-
-# Print the partial new data matrix
-print(head(trans.data, n = 20))
-
-# Sex
-plot(trans.data)
-points(trans.data[which(mdn$sex==1),], col="blue")
-points(trans.data[which(mdn$sex==0),], col="red")
-
-
-# Smoker
-plot(trans.data)
-points(trans.data[which(mdn$smoker==1),], col="blue")
-points(trans.data[which(mdn$smoker==0),], col="red")
-
-# Children 
-plot(trans.data)
-points(trans.data[which(mdn$smoker==0),], col="blue")
-points(trans.data[which(mdn$smoker==1),], col="red")
-points(trans.data[which(mdn$smoker==2),], col="chocolate")
-points(trans.data[which(mdn$smoker==3),], col="darkgoldenrod1")
-points(trans.data[which(mdn$smoker==4),], col="darkmagenta")
-points(trans.data[which(mdn$smoker==5),], col="darkslategray1")
-```
-
-
-```{r}
-# Region
-plot(trans.data)
-points(trans.data[which(mdn$smoker==1),], col="blue")
-points(trans.data[which(mdn$smoker==0),], col="red")
-```
 
 
 # Regression
+
+```{r}
+lm(charges~., data=my_data_num)
+```
+
+Smokers increases helath care costs(charges) by $14,972 per year.
+
+As the number of children increases, helath care costs(charges) can be increased by $432.
+
+Guess: The increase in dependents can increase the cost of care such as hospital care,
+
+
+
+How do you make a model if you want to give a higher penalty to an obese&smoke person?
+
+```{r}
+lm(charges ~ obese * smoker, data=my_data) 
+```
+
+
+Obesity increases health care costs by 865 Dollar, and smoking increases health care costs by 13,386 Dollar. But the both components are applied, (if smoking and obesity are together). It can be expected that medical expenses will increase the most with $19,329.
+By predicting health care charges using linear regression methods, it is possible to impose different insurance premiums depending on the charges.
+
+As a result of the model comparison above(4), by using * rather than +, the prediction of the model became more similar to reality.
 
 
 
