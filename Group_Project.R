@@ -141,9 +141,6 @@ ggplot(data = my_data,aes(region,charges)) + geom_boxplot(fill = c(2:5), alpha=.
                                                                                          x="Region",
                                                                                          y="Charges") + coord_flip()
 
-
-
-
 # Converting Smoker and Sex into numeric Values
 # Female 1, Male 0 
 
@@ -163,3 +160,194 @@ my_data_num$region <- as.numeric(as.factor(my_data$Type))
 
 #Correlation Analysis
 pairs.panels(my_data[c("age", "sex", "bmi", "children", "smoker", "charges")], stars = TRUE)
+
+
+
+# region
+
+temp<-unique(my_data_num$region)
+
+my_data_num$region[which(my_data_num$region==temp[1])]<-0
+my_data_num$region[which(my_data_num$region==temp[2])]<-1
+my_data_num$region[which(my_data_num$region==temp[3])]<-2
+my_data_num$region[which(my_data_num$region==temp[4])]<-3
+head(my_data_num$region)
+
+
+# Set the Data up for my Purpus:
+
+mdn<-my_data_num # change the name for better work 
+mdn$sex<-as.factor(mdn$sex)
+mdn$children<-as.factor(mdn$children)
+mdn$smoker<-as.factor(mdn$smoker)
+mdn$region<-as.factor(mdn$region)
+
+str(mdn)
+
+# Inspect the Data
+
+head(mdn)
+
+plot(mdn) 
+cor(mdn)>0.5   # Where is a Posetive Correlation bigger den 0.5
+cor(mdn)>0   # Where is a Posetive Correlation bigger den 0.0
+
+
+## Densety Plot / visual inspection
+
+c <- ggplot(mdn, aes(x=charges))
+c + geom_density()+
+  labs(title="Density plot",subtitle="Density Plot for the charges",
+       caption="Source: In R studio",
+       x="Charges")
+b <- ggplot(mdn, aes(x=bmi))
+b + geom_density()+
+  labs(title="Density plot", 
+       subtitle="Density Plot for the bmi",
+       caption="Source: In R studio",
+       x="Bmi")
+
+
+c + geom_density(aes(fill=sex), color = NA, alpha=.35) + labs(title="Density plot charges and sex ", 
+                                                              subtitle="Density Plot Grouped by Number of Color",
+                                                              caption="Let it go XDD",
+                                                              x="Charges",
+                                                              fill="# Color")
+b + geom_density(aes(fill=sex), color = NA, alpha=.35) + labs(title="Density plot bmi and sex ", 
+                                                              subtitle="Density Plot Grouped by Number of Color",
+                                                              caption="Let it go XDD",
+                                                              x="Bmi",
+                                                              fill="# Color")
+
+c + geom_density(aes(fill=smoker), color = NA, alpha=.35) + labs(title="Density plot charges and smoker", 
+                                                                 subtitle="Density Plot Grouped by Number of Color",
+                                                                 caption="Let it go XDD",
+                                                                 x="Charges",
+                                                                 fill="# Color")
+b + geom_density(aes(fill=smoker), color = NA, alpha=.35) + labs(title="Density plot bmi and smoker", 
+                                                                 subtitle="Density Plot Grouped by Number of Color",
+                                                                 caption="Let it go XDD",
+                                                                 x="Bmi",
+                                                                 fill="# Color")
+
+c + geom_density(aes(fill=children), color = NA, alpha=.35) + labs(title="Density plot charges and children", 
+                                                                   subtitle="Density Plot Grouped by Number of Color",
+                                                                   caption="Let it go XDD",
+                                                                   x="Charges",
+                                                                   fill="# Color")
+b + geom_density(aes(fill=children), color = NA, alpha=.35) + labs(title="Density plot bmi and children", 
+                                                                   subtitle="Density Plot Grouped by Number of Color",
+                                                                   caption="Let it go XDD",
+                                                                   x="Bmi",
+                                                                   fill="# Color")
+c + geom_density(aes(fill=region), color = NA, alpha=.35) + labs(title="Density plot charges and region", 
+                                                                 subtitle="Density Plot Grouped by Number of Color",
+                                                                 caption="Let it go XDD",
+                                                                 x="Charges",
+                                                                 fill="# Color")
+b + geom_density(aes(fill=region), color = NA, alpha=.35) + labs(title="Density plot bmi and region", 
+                                                                 subtitle="Density Plot Grouped by Number of Color",
+                                                                 caption="Let it go XDD",
+                                                                 x="Bmi",
+                                                                 fill="# Color")
+boxplot(mdn$charges)
+boxplot(mdn[,-7])
+
+# Method to use is a Logistic Regression!
+
+head(mdn)
+##  Split into train/test splits first.
+
+set.seed(666)
+
+default_idx <- sample(nrow(mdn), ceiling(nrow(mdn) / 2))    # coul allso macke 1/ 2/3 what you want
+default_trn <-  Default[default_idx, ]
+default_tst <- Default[-default_idx, ]
+
+# Create the model.
+mb1 <- glm(children ~ smoker + bmi, data = mdn, family = "binomial")
+mg1 <- glm(charges ~ smoker + bmi, data = mdn, family = "gaussian")
+
+summary(mb1)
+summary(mg1)
+
+
+
+# PCA 
+
+daten2<-mdn[,c(-2,-4,-5,-6)]  # get out the categorical variabel
+
+head(daten2)
+
+ggpairs(data = daten2, columns = 1:3)
+# Left and Right are highly correlated (Corr: 0.743). Correlated predictors creates problems in prediction.
+
+# correlation matrix
+cor.mat <- cor(daten2) ; cor.mat  
+eig <- eigen(cor.mat) ; eig
+
+# Extract eigen values and eigen vectors
+evals <- eig$values; evecs <- eig$vectors
+
+# sort the eigen values in descending order
+evals.sorted <- sort(evals, decreasing = T)
+
+
+##  Produce a scree-plot for this PCA.
+plot(eig$values,
+     ylab = "Eigenvalues",
+     xlab = "Compunentnumber",
+     main = "Scree-Plot")
+abline(h=1, col="blue")
+
+# Compute proportion of explained variances
+var.exp <- evals.sorted/sum(evals)
+barplot(var.exp, ylim = c(0,1), col = 'sandybrown',
+        xlab = "Principal Component",
+        ylab = "Explained Variances",
+        axes = TRUE)
+axis(1, c(0.7, 1.9, 3.1, 4.3,5.5,6.7),
+     labels = c("PC1", "PC2", "PC3", "PC4","PC5","PC6"))
+lines(cumsum(var.exp), type = 's', col = 'darkgreen')
+legend(x = 2.5, y = 0.5, legend = c('Explained Variance', 'Cumulative Explained Variance'),
+       pch = c(15,15), col = c('sandybrown', 'darkgreen'),
+       bty = 'n')
+
+var.exp # Shows the Explaind Variance     
+
+
+
+# Transformation matrix
+trmat <- eig$vectors[,1:2]
+
+# New data
+trans.data <- as.matrix(daten2.n) %*% trmat
+
+# Print the partial new data matrix
+print(head(trans.data, n = 20))
+
+# Sex
+plot(trans.data)
+points(trans.data[which(mdn$sex==1),], col="blue")
+points(trans.data[which(mdn$sex==0),], col="red")
+
+
+# Smoker
+plot(trans.data)
+points(trans.data[which(mdn$smoker==1),], col="blue")
+points(trans.data[which(mdn$smoker==0),], col="red")
+
+# Children 
+plot(trans.data)
+points(trans.data[which(mdn$smoker==0),], col="blue")
+points(trans.data[which(mdn$smoker==1),], col="red")
+points(trans.data[which(mdn$smoker==2),], col="chocolate")
+points(trans.data[which(mdn$smoker==3),], col="darkgoldenrod1")
+points(trans.data[which(mdn$smoker==4),], col="darkmagenta")
+points(trans.data[which(mdn$smoker==5),], col="darkslategray1")
+
+
+# Region
+plot(trans.data)
+points(trans.data[which(mdn$smoker==1),], col="blue")
+points(trans.data[which(mdn$smoker==0),], col="red")
