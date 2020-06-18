@@ -1,29 +1,73 @@
+---
+title: "Group Project - Group X"
+author: "Martin Hofwimmer, k01627988 - Mantas Bandonis, k01552238"
+date: "June 2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# Load libraries
+library(ggplot2)
+library(ggthemes)
+library(psych)
+library(relaimpo)
 library("readr")
+library("ISLR")
+library("tibble")
+library("reshape2")
+library("GGally")
+
+options(warn=-1)
+```
+
+
+
+```{r}
+#import dataset
 my_data <- read.table("insurance.csv", sep=",", header=T)
 
-my_data_num <- my_data
+# Get first overview of data
+head(my_data)
+str(my_data)
 
 # Check how many values are missing, no missing values
 colSums(is.na(my_data))
 
+```
 
-# Check types of variables in the data
-str(my_data)
+# EDA - Martin
 
-
-# PART 2  - Visualizations and descriptive statistics without numeric values
-
+```{r}
 #summarize all variables
 summary(my_data)
 describe(my_data)
+```
 
+
+# Analyse Variabes in more Detail
+
+## 1. Age
+```{r}
 #1. Variable Age
 summary(my_data$age)
 #Histogram
 age <- ggplot(my_data, aes(x=age))
 age + geom_histogram(breaks=seq(18,64, by=2) , fill=I("lightblue"), 
-                     col=I("black")) + labs(title = "Histogram of Age", x="Age in years",y="Count") + scale_x_continuous(breaks = seq(20, 65, 5))
+      col=I("black")) + labs(title = "Histogram of Age", x="Age in years",y="Count") + scale_x_continuous(breaks = seq(20, 65, 5))
+```
+Age: The mean age in the sample is 39.21.
 
+
+## 2. Sex
+```{r}
 #2. Variable sex
 table(my_data$sex)
 prop.table(table(my_data$sex))
@@ -31,16 +75,23 @@ prop.table(table(my_data$sex))
 #Bar chart
 sex <- ggplot(my_data, aes(x=sex, y = (..count..)/sum(..count..)))
 sex + geom_bar(fill=I("lightblue"), col=I("black"), alpha=1) + geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25)  + labs(title = "Distribution of Gender", x="Gender", y="Percent") + scale_y_continuous(breaks = seq(0, 0.6, 0.1),labels = scales::percent)
+```
 
 
+## 3. BMI
+```{r}
 #3. Variable BMI
 summary(my_data$bmi)
 #histogram
 bmi <- ggplot(my_data, aes(x=bmi))
 bmi + geom_histogram(breaks=seq(15,54, by=2) , fill=I("lightgreen"), 
-                     col=I("black")) + labs(title = "Histogram of BMI", x="BMI",y="Count") + scale_x_continuous(breaks = seq(15, 55, 5))
+      col=I("black")) + labs(title = "Histogram of BMI", x="BMI",y="Count") + scale_x_continuous(breaks = seq(15, 55, 5))
+
+```
 
 
+## 4. Children
+```{r}
 #4. Variabe children
 table(my_data$children)
 prop.table(table(my_data$children))
@@ -48,8 +99,12 @@ prop.table(table(my_data$children))
 #Bar chart
 children <- ggplot(my_data, aes(x=as.factor(children), y = (..count..)/sum(..count..)))
 children + geom_bar(fill=I("lightblue"), col=I("black"), alpha=1) + geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25)  + labs(title = "Distribution of Number of Children", x="Number of Children", y="Percent") + scale_y_continuous(breaks = seq(0, 0.6, 0.1),labels = scales::percent)
+```
 
 
+
+## 5. Smoker
+```{r}
 #5. Variable Smoker
 table(my_data$smoker)
 prop.table(table(my_data$smoker))
@@ -58,7 +113,11 @@ prop.table(table(my_data$smoker))
 smoker <- ggplot(my_data, aes(x=smoker, y = (..count..)/sum(..count..)))
 smoker + geom_bar(fill=I("lightblue"), col=I("black"), alpha=1) + geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25)  + labs(title = "Distribution of Smoking Status", x="Person is Smoker", y="Percent") + scale_y_continuous(breaks = seq(0, 0.9, 0.2),labels = scales::percent)
 
+```
 
+
+## 6. Region
+```{r}
 #6. Variable Region
 table(my_data$region)
 prop.table(table(my_data$region))
@@ -66,86 +125,116 @@ prop.table(table(my_data$region))
 #Bar chart
 region <- ggplot(my_data, aes(x=region, y = (..count..)/sum(..count..)))
 region + geom_bar(fill=I("lightblue"), col=I("black"), alpha=1) + geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25)  + labs(title = "Distribution of Region", x="Region", y="Percent") + scale_y_continuous(breaks = seq(0, 0.3, 0.05),labels = scales::percent)
+```
 
 
+## 7. Charges
+```{r}
 #7. Variable Charges
 summary(my_data$charges)
 #Histogram
 c <- ggplot(my_data, aes(x=charges))
 c + geom_histogram(breaks=seq(0,64000, by=2000) , fill=I("red"), 
-                   col=I("black")) + labs(title = "Histogram of Charges", x="Charges",y="Count")  + scale_x_continuous(breaks = seq(0, 60000, 10000))
+      col=I("black")) + labs(title = "Histogram of Charges", x="Charges",y="Count")  + scale_x_continuous(breaks = seq(0, 60000, 10000))
+```
 
+
+
+### 7.1 Charges and Age
+
+```{r}
 #7.1 Charges and Age
 ggplot(my_data, aes(x=age, y=charges)) + geom_point()+ labs(title="Scatter plot Charges and Age ", 
-                                                            caption="",
-                                                            x="Age",
-                                                            y="Charges")+ geom_smooth()
+                                                          caption="",
+                                                          x="Age",
+                                                          y="Charges")+ geom_smooth()
+```
 
+## 7.2 Charges and Sex
+
+```{r}
 #7.2 Charges and Sex
 c + geom_density(aes(fill=sex), color = NA, alpha=.35) + labs(title="Density plot Charges and Sex ", 
                                                               subtitle="Density Plot Grouped by Sex",
                                                               caption="",
                                                               x="Charges",
-                                                              fill="Legend")
+                                                             fill="Legend")
 
 ggplot(data = my_data,aes(sex,charges)) + geom_boxplot(fill = c(2,4), alpha=.6) +labs(title="Boxplot Charges and Sex", 
-                                                                                      subtitle="Boxplot Grouped by Sex",
-                                                                                      caption="",
-                                                                                      x="Gender",
-                                                                                      y="Charges") + coord_flip()
+                                                              subtitle="Boxplot Grouped by Sex",
+                                                              caption="",
+                                                              x="Gender",
+                                                              y="Charges") + coord_flip()
+
+```
+
 
 ### 7.3 Charges and BMI
+```{r}
 #7.3 Charges and BMI
 ggplot(my_data, aes(x=bmi, y=charges)) + geom_point()+ labs(title="Scatter plot Charges and BMI ", 
-                                                            caption="",
-                                                            x="BMI",
-                                                            y="Charges") + geom_smooth()
+                                                          caption="",
+                                                          x="BMI",
+                                                          y="Charges") + geom_smooth()
+```
 
 
+### 7.4. CHarges and Children
+```{r}
 #7.4 Charges and Children
 c + geom_density(aes(fill=as.factor(children)), color = NA, alpha=.45) + labs(title="Density plot Charges and Children ", 
-                                                                              subtitle="Density Plot Grouped by Number of Children",
-                                                                              caption="",
-                                                                              x="Charges",
-                                                                              fill="Legend")
+                                                              subtitle="Density Plot Grouped by Number of Children",
+                                                              caption="",
+                                                              x="Charges",
+                                                             fill="Legend")
 
 ggplot(data = my_data,aes(as.factor(children),charges)) + geom_boxplot(fill = c(2:7), alpha=.6) +labs(title="Boxplot Charges and Children", 
-                                                                                                      subtitle="Boxplot Grouped by Number of Children",
-                                                                                                      caption="",
-                                                                                                      x="Number of Children",
-                                                                                                      y="Charges") + coord_flip()
+                                                              subtitle="Boxplot Grouped by Number of Children",
+                                                              caption="",
+                                                              x="Number of Children",
+                                                              y="Charges") + coord_flip()
+```
 
+### 7.5 Charges and Smoker
+```{r}
 #7.5 Charges and Smoker
 c + geom_density(aes(fill=smoker), color = NA, alpha=.35) + labs(title="Density plot Charges and Smoking", 
-                                                                 subtitle="Density Plot Grouped by Smoking Status",
-                                                                 caption="",
-                                                                 x="Charges",
-                                                                 fill="Legend")
+                                                              subtitle="Density Plot Grouped by Smoking Status",
+                                                              caption="",
+                                                              x="Charges",
+                                                             fill="Legend")
 
 ggplot(data = my_data,aes(smoker,charges)) + geom_boxplot(fill = c(2,4), alpha=.6) +labs(title="Boxplot Charges and Smoking", 
-                                                                                         subtitle="Boxplot Grouped by Smoking Status",
-                                                                                         caption="",
-                                                                                         x="Smoking Status",
-                                                                                         y="Charges") + coord_flip()
+                                                              subtitle="Boxplot Grouped by Smoking Status",
+                                                              caption="",
+                                                              x="Smoking Status",
+                                                              y="Charges") + coord_flip()
+```
 
+
+
+### 7.6 Charges and Region
+```{r}
 #7.6 Charges and Region
 c + geom_density(aes(fill=region), color = NA, alpha=.45) + labs(title="Density plot Charges and Region ", 
-                                                                 subtitle="Density Plot Grouped by Region",
-                                                                 caption="",
-                                                                 x="Charges",
-                                                                 fill="Legend")
+                                                              subtitle="Density Plot Grouped by Region",
+                                                              caption="",
+                                                              x="Charges",
+                                                             fill="Legend")
 
 ggplot(data = my_data,aes(region,charges)) + geom_boxplot(fill = c(2:5), alpha=.6) +labs(title="Boxplot Charges and Region", 
-                                                                                         subtitle="Boxplot Grouped by Region",
-                                                                                         caption="",
-                                                                                         x="Region",
-                                                                                         y="Charges") + coord_flip()
+                                                              subtitle="Boxplot Grouped by Region",
+                                                              caption="",
+                                                              x="Region",
+                                                              y="Charges") + coord_flip()
+```
 
+# Data Preprocessing
 
-
-
+```{r}
 # Converting Smoker and Sex into numeric Values
 # Female 1, Male 0 
+my_data_num<-my_data
 
 my_data_num$sex <- ifelse(my_data$sex == "female", 1,0)
 my_data_num$sex = as.factor(my_data_num$sex )
@@ -158,8 +247,17 @@ my_data_num$sex = as.factor(my_data_num$smoker)
 
 # Only use this if you want the regions in numeric
 
-my_data_num$region <- as.numeric(as.factor(my_data$Type))
+my_data_num$region <- as.numeric(as.factor(my_data$region))
+```
 
 
+# Correlation Analysis
+
+```{r}
 #Correlation Analysis
 pairs.panels(my_data[c("age", "sex", "bmi", "children", "smoker", "charges")], stars = TRUE)
+```
+
+
+
+
