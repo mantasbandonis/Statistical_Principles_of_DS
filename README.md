@@ -2,12 +2,28 @@
 Group Project of the Statistical Principles of Data Science Course @Johannes Kepler University Linz
 
 
+The dataset was taken from Kaggle
+https://www.kaggle.com/mirichoi0218/insurance
 
-The dataset was taken from the UCI Repository of Machine Learning
-https://archive.ics.uci.edu/ml/datasets/Facebook+metrics
 
-The data is related to posts' published during the year of 2014 on the Facebook's page of a renowned cosmetics brand. 
-This dataset contains 500 of the 790 rows and part of the features analyzed by Moro et al. (2016). The remaining were omitted due to confidentiality issues. It includes 7 features known prior to post publication and 12 features for evaluating post impact (see Tables 2 and 3 from Moro et al., 2016 - complete reference in the 'Citation Request')
+Context
 
-This dataset is public available for research. 
-(Moro et al., 2016) Moro, S., Rita, P., & Vala, B. (2016). Predicting social media performance metrics and evaluation of the impact on brand building: A data mining approach. Journal of Business Research, 69(9), 3341-3351. 
+Machine Learning with R by Brett Lantz is a book that provides an introduction to machine learning using R. 
+Packt Publishing does not make its datasets available online unless you buy the book and create a user account which can be a problem if you are checking the book out from the library or borrowing the book from a friend. 
+All of these datasets are in the public domain but simply needed some cleaning up and recoding to match the format in the book.
+
+Columns
+
+age: age of primary beneficiary
+sex: insurance contractor gender, female, male
+bmi: Body mass index, providing an understanding of body, weights that are relatively high or low relative to height,
+objective index of body weight (kg / m ^ 2) using the ratio of height to weight, ideally 18.5 to 24.9
+children: Number of children covered by health insurance / Number of dependents
+smoker: Smoking
+region: the beneficiary's residential area in the US, northeast, southeast, southwest, northwest.
+charges: Individual medical costs billed by health insurance
+
+
+Goal
+
+It it possible to accurately predict insurance costs?
